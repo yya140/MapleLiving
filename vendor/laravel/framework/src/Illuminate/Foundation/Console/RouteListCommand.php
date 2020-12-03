@@ -3,11 +3,11 @@
 namespace Illuminate\Foundation\Console;
 
 use Closure;
-use Illuminate\Console\Command;
-use Illuminate\Routing\Route;
-use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Routing\Route;
+use Illuminate\Routing\Router;
+use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 
 class RouteListCommand extends Command
@@ -36,14 +36,14 @@ class RouteListCommand extends Command
     /**
      * The table headers for the command.
      *
-     * @var string[]
+     * @var array
      */
     protected $headers = ['Domain', 'Method', 'URI', 'Name', 'Action', 'Middleware'];
 
     /**
      * The columns to display when using the "compact" flag.
      *
-     * @var string[]
+     * @var array
      */
     protected $compactColumns = ['method', 'uri', 'action'];
 
@@ -170,9 +170,9 @@ class RouteListCommand extends Command
      */
     protected function getMiddleware($route)
     {
-        return collect($this->router->gatherRouteMiddleware($route))->map(function ($middleware) {
+        return collect($route->gatherMiddleware())->map(function ($middleware) {
             return $middleware instanceof Closure ? 'Closure' : $middleware;
-        })->implode("\n");
+        })->implode(',');
     }
 
     /**
@@ -240,7 +240,7 @@ class RouteListCommand extends Command
             }
         }
 
-        return array_map('strtolower', $results);
+        return $results;
     }
 
     /**

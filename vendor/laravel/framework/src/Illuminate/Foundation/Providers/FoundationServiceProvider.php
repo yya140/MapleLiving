@@ -3,16 +3,15 @@
 namespace Illuminate\Foundation\Providers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\AggregateServiceProvider;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\AggregateServiceProvider;
 
 class FoundationServiceProvider extends AggregateServiceProvider
 {
     /**
      * The provider class names.
      *
-     * @var string[]
+     * @var array
      */
     protected $providers = [
         FormRequestServiceProvider::class,
@@ -20,8 +19,6 @@ class FoundationServiceProvider extends AggregateServiceProvider
 
     /**
      * Boot the service provider.
-     *
-     * @return void
      */
     public function boot()
     {
@@ -49,23 +46,11 @@ class FoundationServiceProvider extends AggregateServiceProvider
      * Register the "validate" macro on the request.
      *
      * @return void
-     *
-     * @throws \Illuminate\Validation\ValidationException
      */
     public function registerRequestValidation()
     {
         Request::macro('validate', function (array $rules, ...$params) {
             return validator()->validate($this->all(), $rules, ...$params);
-        });
-
-        Request::macro('validateWithBag', function (string $errorBag, array $rules, ...$params) {
-            try {
-                return $this->validate($rules, ...$params);
-            } catch (ValidationException $e) {
-                $e->errorBag = $errorBag;
-
-                throw $e;
-            }
         });
     }
 
@@ -78,10 +63,6 @@ class FoundationServiceProvider extends AggregateServiceProvider
     {
         Request::macro('hasValidSignature', function ($absolute = true) {
             return URL::hasValidSignature($this, $absolute);
-        });
-
-        Request::macro('hasValidRelativeSignature', function () {
-            return URL::hasValidSignature($this, $absolute = false);
         });
     }
 }

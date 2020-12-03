@@ -3,12 +3,10 @@
 namespace Illuminate\Queue;
 
 use Aws\Sqs\SqsClient;
-use Illuminate\Contracts\Queue\ClearableQueue;
-use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Jobs\SqsJob;
-use Illuminate\Support\Str;
+use Illuminate\Contracts\Queue\Queue as QueueContract;
 
-class SqsQueue extends Queue implements QueueContract, ClearableQueue
+class SqsQueue extends Queue implements QueueContract
 {
     /**
      * The Amazon SQS instance.
@@ -32,27 +30,18 @@ class SqsQueue extends Queue implements QueueContract, ClearableQueue
     protected $prefix;
 
     /**
-     * The queue name suffix.
-     *
-     * @var string
-     */
-    private $suffix;
-
-    /**
      * Create a new Amazon SQS queue instance.
      *
      * @param  \Aws\Sqs\SqsClient  $sqs
      * @param  string  $default
      * @param  string  $prefix
-     * @param  string  $suffix
      * @return void
      */
-    public function __construct(SqsClient $sqs, $default, $prefix = '', $suffix = '')
+    public function __construct(SqsClient $sqs, $default, $prefix = '')
     {
         $this->sqs = $sqs;
         $this->prefix = $prefix;
         $this->default = $default;
-        $this->suffix = $suffix;
     }
 
     /**
@@ -77,7 +66,7 @@ class SqsQueue extends Queue implements QueueContract, ClearableQueue
      * Push a new job onto the queue.
      *
      * @param  string  $job
-     * @param  mixed  $data
+     * @param  mixed   $data
      * @param  string|null  $queue
      * @return mixed
      */
@@ -91,7 +80,7 @@ class SqsQueue extends Queue implements QueueContract, ClearableQueue
      *
      * @param  string  $payload
      * @param  string|null  $queue
-     * @param  array  $options
+     * @param  array   $options
      * @return mixed
      */
     public function pushRaw($payload, $queue = null, array $options = [])
@@ -106,7 +95,7 @@ class SqsQueue extends Queue implements QueueContract, ClearableQueue
      *
      * @param  \DateTimeInterface|\DateInterval|int  $delay
      * @param  string  $job
-     * @param  mixed  $data
+     * @param  mixed   $data
      * @param  string|null  $queue
      * @return mixed
      */
@@ -141,21 +130,6 @@ class SqsQueue extends Queue implements QueueContract, ClearableQueue
     }
 
     /**
-     * Delete all of the jobs from the queue.
-     *
-     * @param  string  $queue
-     * @return int
-     */
-    public function clear($queue)
-    {
-        return tap($this->size($queue), function () use ($queue) {
-            $this->sqs->purgeQueue([
-                'QueueUrl' => $this->getQueue($queue),
-            ]);
-        });
-    }
-
-    /**
      * Get the queue or return the default.
      *
      * @param  string|null  $queue
@@ -166,8 +140,7 @@ class SqsQueue extends Queue implements QueueContract, ClearableQueue
         $queue = $queue ?: $this->default;
 
         return filter_var($queue, FILTER_VALIDATE_URL) === false
-            ? rtrim($this->prefix, '/').'/'.Str::finish($queue, $this->suffix)
-            : $queue;
+                        ? rtrim($this->prefix, '/').'/'.$queue : $queue;
     }
 
     /**

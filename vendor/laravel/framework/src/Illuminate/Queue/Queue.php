@@ -2,11 +2,9 @@
 
 namespace Illuminate\Queue;
 
-use Closure;
 use DateTimeInterface;
 use Illuminate\Container\Container;
 use Illuminate\Support\InteractsWithTime;
-use Illuminate\Support\Str;
 
 abstract class Queue
 {
@@ -38,7 +36,7 @@ abstract class Queue
      *
      * @param  string  $queue
      * @param  string  $job
-     * @param  mixed  $data
+     * @param  mixed   $data
      * @return mixed
      */
     public function pushOn($queue, $job, $data = '')
@@ -52,7 +50,7 @@ abstract class Queue
      * @param  string  $queue
      * @param  \DateTimeInterface|\DateInterval|int  $delay
      * @param  string  $job
-     * @param  mixed  $data
+     * @param  mixed   $data
      * @return mixed
      */
     public function laterOn($queue, $delay, $job, $data = '')
@@ -63,8 +61,8 @@ abstract class Queue
     /**
      * Push an array of jobs onto the queue.
      *
-     * @param  array  $jobs
-     * @param  mixed  $data
+     * @param  array   $jobs
+     * @param  mixed   $data
      * @param  string|null  $queue
      * @return void
      */
@@ -78,19 +76,15 @@ abstract class Queue
     /**
      * Create a payload string from the given job and data.
      *
-     * @param  \Closure|string|object  $job
+     * @param  string|object  $job
      * @param  string  $queue
-     * @param  mixed  $data
+     * @param  mixed   $data
      * @return string
      *
      * @throws \Illuminate\Queue\InvalidPayloadException
      */
     protected function createPayload($job, $queue, $data = '')
     {
-        if ($job instanceof Closure) {
-            $job = CallQueuedClosure::create($job);
-        }
-
         $payload = json_encode($this->createPayloadArray($job, $queue, $data));
 
         if (JSON_ERROR_NONE !== json_last_error()) {
@@ -127,14 +121,12 @@ abstract class Queue
     protected function createObjectPayload($job, $queue)
     {
         $payload = $this->withCreatePayloadHooks($queue, [
-            'uuid' => (string) Str::uuid(),
             'displayName' => $this->getDisplayName($job),
             'job' => 'Illuminate\Queue\CallQueuedHandler@call',
             'maxTries' => $job->tries ?? null,
-            'maxExceptions' => $job->maxExceptions ?? null,
-            'backoff' => $this->getJobBackoff($job),
+            'delay' => $this->getJobRetryDelay($job),
             'timeout' => $job->timeout ?? null,
-            'retryUntil' => $this->getJobExpiration($job),
+            'timeoutAt' => $this->getJobExpiration($job),
             'data' => [
                 'commandName' => $job,
                 'command' => $job,
@@ -162,22 +154,21 @@ abstract class Queue
     }
 
     /**
-     * Get the backoff for an object-based queue handler.
+     * Get the retry delay for an object-based queue handler.
      *
      * @param  mixed  $job
      * @return mixed
      */
-    public function getJobBackoff($job)
+    public function getJobRetryDelay($job)
     {
-        if (! method_exists($job, 'backoff') && ! isset($job->backoff)) {
+        if (! method_exists($job, 'retryAfter') && ! isset($job->retryAfter)) {
             return;
         }
 
-        return collect($job->backoff ?? $job->backoff())
-            ->map(function ($backoff) {
-                return $backoff instanceof DateTimeInterface
-                                ? $this->secondsUntil($backoff) : $backoff;
-            })->implode(',');
+        $delay = $job->retryAfter ?? $job->retryAfter();
+
+        return $delay instanceof DateTimeInterface
+                        ? $this->secondsUntil($delay) : $delay;
     }
 
     /**
@@ -188,11 +179,11 @@ abstract class Queue
      */
     public function getJobExpiration($job)
     {
-        if (! method_exists($job, 'retryUntil') && ! isset($job->retryUntil)) {
+        if (! method_exists($job, 'retryUntil') && ! isset($job->timeoutAt)) {
             return;
         }
 
-        $expiration = $job->retryUntil ?? $job->retryUntil();
+        $expiration = $job->timeoutAt ?? $job->retryUntil();
 
         return $expiration instanceof DateTimeInterface
                         ? $expiration->getTimestamp() : $expiration;
@@ -209,12 +200,10 @@ abstract class Queue
     protected function createStringPayload($job, $queue, $data)
     {
         return $this->withCreatePayloadHooks($queue, [
-            'uuid' => (string) Str::uuid(),
             'displayName' => is_string($job) ? explode('@', $job)[0] : null,
             'job' => $job,
             'maxTries' => null,
-            'maxExceptions' => null,
-            'backoff' => null,
+            'delay' => null,
             'timeout' => null,
             'data' => $data,
         ]);

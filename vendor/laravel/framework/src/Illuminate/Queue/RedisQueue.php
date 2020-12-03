@@ -2,13 +2,12 @@
 
 namespace Illuminate\Queue;
 
-use Illuminate\Contracts\Queue\ClearableQueue;
-use Illuminate\Contracts\Queue\Queue as QueueContract;
-use Illuminate\Contracts\Redis\Factory as Redis;
-use Illuminate\Queue\Jobs\RedisJob;
 use Illuminate\Support\Str;
+use Illuminate\Queue\Jobs\RedisJob;
+use Illuminate\Contracts\Redis\Factory as Redis;
+use Illuminate\Contracts\Queue\Queue as QueueContract;
 
-class RedisQueue extends Queue implements QueueContract, ClearableQueue
+class RedisQueue extends Queue implements QueueContract
 {
     /**
      * The Redis factory implementation.
@@ -80,29 +79,10 @@ class RedisQueue extends Queue implements QueueContract, ClearableQueue
     }
 
     /**
-     * Push an array of jobs onto the queue.
-     *
-     * @param  array  $jobs
-     * @param  mixed  $data
-     * @param  string|null  $queue
-     * @return void
-     */
-    public function bulk($jobs, $data = '', $queue = null)
-    {
-        $this->getConnection()->pipeline(function () use ($jobs, $data, $queue) {
-            $this->getConnection()->transaction(function () use ($jobs, $data, $queue) {
-                foreach ((array) $jobs as $job) {
-                    $this->push($job, $data, $queue);
-                }
-            });
-        });
-    }
-
-    /**
      * Push a new job onto the queue.
      *
      * @param  object|string  $job
-     * @param  mixed  $data
+     * @param  mixed   $data
      * @param  string|null  $queue
      * @return mixed
      */
@@ -116,7 +96,7 @@ class RedisQueue extends Queue implements QueueContract, ClearableQueue
      *
      * @param  string  $payload
      * @param  string|null  $queue
-     * @param  array  $options
+     * @param  array   $options
      * @return mixed
      */
     public function pushRaw($payload, $queue = null, array $options = [])
@@ -134,7 +114,7 @@ class RedisQueue extends Queue implements QueueContract, ClearableQueue
      *
      * @param  \DateTimeInterface|\DateInterval|int  $delay
      * @param  object|string  $job
-     * @param  mixed  $data
+     * @param  mixed   $data
      * @param  string|null  $queue
      * @return mixed
      */
@@ -164,9 +144,9 @@ class RedisQueue extends Queue implements QueueContract, ClearableQueue
      * Create a payload string from the given job and data.
      *
      * @param  string  $job
-     * @param  string  $queue
-     * @param  mixed  $data
-     * @return array
+     * @param  string   $queue
+     * @param  mixed   $data
+     * @return string
      */
     protected function createPayloadArray($job, $queue, $data = '')
     {
@@ -288,22 +268,6 @@ class RedisQueue extends Queue implements QueueContract, ClearableQueue
     }
 
     /**
-     * Delete all of the jobs from the queue.
-     *
-     * @param  string  $queue
-     * @return int
-     */
-    public function clear($queue)
-    {
-        $queue = $this->getQueue($queue);
-
-        return $this->getConnection()->eval(
-            LuaScripts::clear(), 4, $queue, $queue.':delayed',
-            $queue.':reserved', $queue.':notify'
-        );
-    }
-
-    /**
      * Get a random ID string.
      *
      * @return string
@@ -329,7 +293,7 @@ class RedisQueue extends Queue implements QueueContract, ClearableQueue
      *
      * @return \Illuminate\Redis\Connections\Connection
      */
-    public function getConnection()
+    protected function getConnection()
     {
         return $this->redis->connection($this->connection);
     }

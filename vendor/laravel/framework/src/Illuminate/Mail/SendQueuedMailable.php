@@ -2,7 +2,7 @@
 
 namespace Illuminate\Mail;
 
-use Illuminate\Contracts\Mail\Factory as MailFactory;
+use Illuminate\Contracts\Mail\Mailer as MailerContract;
 use Illuminate\Contracts\Mail\Mailable as MailableContract;
 
 class SendQueuedMailable
@@ -44,12 +44,12 @@ class SendQueuedMailable
     /**
      * Handle the queued job.
      *
-     * @param  \Illuminate\Contracts\Mail\Factory  $factory
+     * @param  \Illuminate\Contracts\Mail\Mailer  $mailer
      * @return void
      */
-    public function handle(MailFactory $factory)
+    public function handle(MailerContract $mailer)
     {
-        $this->mailable->send($factory);
+        $this->mailable->send($mailer);
     }
 
     /**
@@ -65,7 +65,7 @@ class SendQueuedMailable
     /**
      * Call the failed method on the mailable instance.
      *
-     * @param  \Throwable  $e
+     * @param  \Exception  $e
      * @return void
      */
     public function failed($e)
@@ -76,17 +76,17 @@ class SendQueuedMailable
     }
 
     /**
-     * Get number of seconds before a released mailable will be available.
+     * Get the retry delay for the mailable object.
      *
      * @return mixed
      */
-    public function backoff()
+    public function retryAfter()
     {
-        if (! method_exists($this->mailable, 'backoff') && ! isset($this->mailable->backoff)) {
+        if (! method_exists($this->mailable, 'retryAfter') && ! isset($this->mailable->retryAfter)) {
             return;
         }
 
-        return $this->mailable->backoff ?? $this->mailable->backoff();
+        return $this->mailable->retryAfter ?? $this->mailable->retryAfter();
     }
 
     /**
